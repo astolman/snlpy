@@ -1,0 +1,5 @@
+.vim/
+demo/.ipynb_checkpoints
+snlpy/.vim/
+snlpy/__pycache__/
+snlpy/embeddings/__pycache__/
