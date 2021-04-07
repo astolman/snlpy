@@ -4,16 +4,16 @@ Node2Vec embedding implementation
 from gensim.models.word2vec import Word2Vec
 import numpy as np
 from numba import njit, prange
-from snlpy.embeddings.deepwalk import _WalkContainer, process_graph
+from snlpy.embeddings.deepwalk import _WalkContainer, process_adj
 
 
-def Node2Vec(graph, walk_number=10, walk_length=80, dimensions=128,
+def Node2Vec(adj, walk_number=10, walk_length=80, dimensions=128,
              workers=4, window_size=5, epochs=1, learning_rate=0.05, p=0.5, q=0.5):
     """
         PARAMETERS
         ----------
-        graph : CsrGraph
-            graph to which to fit an embedding
+        adj : CsrGraph
+            adjacency matrix of graph to which to fit an embedding
         walk_number : int, optional
             number of walks for Node2Vec
         walk_length : int, optional
@@ -35,9 +35,9 @@ def Node2Vec(graph, walk_number=10, walk_length=80, dimensions=128,
 
         RETURNS
         -------
-        np.ndarray(shape=(graph.number_of_nodes(), d), dtype=np.float32)
+        np.ndarray(shape=(adj.shape[0], dtype=np.float32))
     """
-    walk_container = _do_walks(graph, walk_length, walk_number, p, q)
+    walk_container = _do_walks(adj, walk_length, walk_number, p, q)
     model = Word2Vec(walk_container,
                      hs=1,
                      alpha=learning_rate,
@@ -46,8 +46,8 @@ def Node2Vec(graph, walk_number=10, walk_length=80, dimensions=128,
                      window=window_size,
                      min_count=1,
                      workers=workers)
-    emb = np.zeros((graph.number_of_nodes(), dimensions))
-    for i in range(graph.number_of_nodes()):
+    emb = np.zeros((adj.shape[0], dimensions))
+    for i in range(adj.shape[0]):
         emb[i, :] = model[str(i)]
     return emb
 
@@ -151,13 +151,13 @@ def _prob_map(val, p_arr, beg, end):
             return _prob_map(val, p_arr, pivot, end)
 
 
-def _do_walks(graph, walk_length, walk_number, p, q, chunksize=4000):
+def _do_walks(adj, walk_length, walk_number, p, q, chunksize=4000):
     """Perform node2vec's second order walks
 
     PARAMETERS
     ----------
-    graph : CsrGraph
-        graph to do walks on
+    adj : CsrGraph
+        adjacency matrix of graph to do walks on
     walk_length : int
         length of random walks
     walk_number : int
@@ -173,7 +173,7 @@ def _do_walks(graph, walk_length, walk_number, p, q, chunksize=4000):
     -------
     iterator containing walk transcripts as lists of strings
     """
-    rows, indxs = process_graph(graph)
+    rows, indxs = process_adj(adj)
     n = len(indxs) - 1
     # pool = Pool(processes=workers)
     # args = [(x, walk_length, p, q, rows, indxs)

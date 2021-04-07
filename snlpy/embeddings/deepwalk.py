@@ -7,15 +7,15 @@ import numpy as np
 from gensim.models.word2vec import Word2Vec
 
 
-def DeepWalk(graph, walk_number=10, walk_length=80, dimensions=128,
+def DeepWalk(adj, walk_number=10, walk_length=80, dimensions=128,
              workers=4, window_size=5, epochs=1, learning_rate=0.05):
     """
     Fit an embedding to graph according to DeepWalk method
 
     PARAMETERS
     ----------
-    graph : CsrGraph
-        graph to which to fit an embedding
+    graph : scipy.sparse.csr_matrix
+        adjacency matrix of graph to which to fit an embedding
     walk_number : int, optionl
         number of walks for DeepWalk
     walk_length : int, optionl
@@ -34,9 +34,9 @@ def DeepWalk(graph, walk_number=10, walk_length=80, dimensions=128,
 
     RETURNS
     -------
-    np.ndarray(shape=(graph.number_of_nodes(), d), dtype=np.float32)
+    np.ndarray(shape=(adj.shape[0], d), dtype=np.float32)
     """
-    walk_container = _do_walks(graph, walk_length, walk_number)
+    walk_container = _do_walks(adj, walk_length, walk_number)
     model = Word2Vec(walk_container,
                      hs=1,
                      alpha=learning_rate,
@@ -46,8 +46,8 @@ def DeepWalk(graph, walk_number=10, walk_length=80, dimensions=128,
                      min_count=1,
                      workers=workers,
                      )
-    emb = np.zeros((graph.number_of_nodes(), dimensions))
-    for i in range(graph.number_of_nodes()):
+    emb = np.zeros((adj.shape[0], dimensions))
+    for i in range(adj.shape[0]):
         emb[i, :] = model[str(i)]
     return emb
 
@@ -103,9 +103,9 @@ def do_walk(rows, indxs, num_steps, endpoints, walks):
     return walks
 
 
-def process_graph(g):
-    rows = g.row_indxs
-    indxs = g.row_ptrs
+def process_adj(g):
+    rows = g.indices
+    indxs = g.indptr
     return rows, indxs
 
 
@@ -121,15 +121,15 @@ class _WalkContainer():
             yield [str(x) for x in walk]
 
 
-def _do_walks(graph, walk_length, walk_number):
+def _do_walks(adj, walk_length, walk_number):
     """
     Perform random walks
 
 
     PARAMETERS
     ----------
-    graph : CsrGraph
-        graph to do walks on
+    adj : scipy.sparse.csr_matrix
+        adjacency matrix of graph to do walks on
     walk_length : int
         length of random walks
     walk_number : int
@@ -139,7 +139,7 @@ def _do_walks(graph, walk_length, walk_number):
     -------
     iterator containing walk as lists of strings
     """
-    rows, indxs = process_graph(graph)
+    rows, indxs = process_adj(adj)
     n = len(indxs) - 1
     walk_container = _WalkContainer(n * walk_number, walk_length)
     for i in range(walk_number):

@@ -26,7 +26,7 @@ def NetMF(graph, dimensions=128, iterations=10, order=2, negative_samples=1):
 
     RETURNS
     -------
-    np.ndarray(shape=(graph.number_of_nodes(), d), dtype=np.float32)
+    np.ndarray(shape=(graph.shape[0], d), dtype=np.float32)
     """
     target_matrix = _create_target_matrix(graph, order, negative_samples)
     return _create_embedding(target_matrix, dimensions, iterations)
@@ -41,13 +41,13 @@ def _create_D_inverse(graph):
     Return types:
         * **D_inverse** *(Scipy array)* - Diagonal inverse degree matrix.
     """
-    index = np.arange(graph.number_of_nodes())
-    values = np.array([1.0/graph.degree(node) for node in range(graph.number_of_nodes())])
-    shape = (graph.number_of_nodes(), graph.number_of_nodes())
+    index = np.arange(graph.shape[0])
+    values = np.array([1.0/np.sum(graph[node]) for node in range(graph.shape[0])])
+    shape = (graph.shape[0], graph.shape[0])
     D_inverse = sparse.csr_matrix((values, (index, index)), shape=shape, dtype=np.float32)
     return D_inverse
 
-def _create_base_matrix(graph):
+def _create_base_matrix(A):
     """
     Creating the normalized adjacency matrix.
 
@@ -57,8 +57,8 @@ def _create_base_matrix(graph):
     Return types:
         * **(A_hat, A_hat, A_hat, D_inverse)** *(SciPy arrays)* - Normalized adjacency matrices.
     """
-    A = graph.to_csr_matrix()
-    D_inverse = _create_D_inverse(graph)
+    #A = graph.to_csr_matrix()
+    D_inverse = _create_D_inverse(A)
     A_hat = D_inverse.dot(A)
     return (A_hat, A_hat, A_hat, D_inverse)
 
@@ -77,7 +77,7 @@ def _create_target_matrix(graph, order, negative_samples):
         A_tilde = A_tilde.dot(A_hat)
         A_pool = A_pool + A_tilde
     del A_hat, A_tilde
-    A_pool.data = (graph.number_of_edges()*A_pool.data)/(order*negative_samples)
+    A_pool.data = (graph.nnz/2*A_pool.data)/(order*negative_samples)
     A_pool = A_pool.dot(D_inverse)
     A_pool.data[A_pool.data < 1.0] = 1.0
     target_matrix = sparse.csr_matrix((np.log(A_pool.data), A_pool.indices, A_pool.indptr),

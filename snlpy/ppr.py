@@ -11,7 +11,7 @@ import numpy as np
 import collections
 
 
-def ppr(graph, seed, alpha=0.85, tol=0.0001):
+def ppr(adj, seed, alpha=0.85, tol=0.0001):
     """
     Compute approximate ppr vector for the given seed on the graph
 
@@ -33,17 +33,17 @@ def ppr(graph, seed, alpha=0.85, tol=0.0001):
     -------
     scipy.sparse.csr_matrix representation of approximate PPR vector
     """
-    p = np.zeros(len(graph))
-    r = np.zeros(len(graph))
+    p = np.zeros(adj.shape[0])
+    r = np.zeros(adj.shape[0])
     Q = collections.deque()  # initialize queue
     r[seed] = 1/len(seed)
     Q.extend(s for s in seed)
     while len(Q) > 0:
         v = Q.popleft()  # v has r[v] > tol*deg(v)
-        p, r_prime = push(v, np.copy(r), p, graph.row_ptrs, graph.row_indxs, alpha)
+        p, r_prime = push(v, np.copy(r), p, adj.indptr, adj.indices, alpha)
         new_verts = np.where(r_prime - r > 0)[0]
         r = r_prime
-        Q.extend(u for u in new_verts if r[u] / len(graph[u]) > tol)
+        Q.extend(u for u in new_verts if r[u] / np.sum(adj[u].todense()) > tol)
     return sparse.csr_matrix(p)
 
 
