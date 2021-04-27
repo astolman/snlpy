@@ -7,17 +7,10 @@ missing in common libraries and is difficult to reliably implement oneself.
 In the python world, this is evident just looking for a library method
 to perform matrix multiplication on two sparse matrices.
 
-The problems in python are further exacerbated by the inefficiency of many common
-libraries used in data science. For example, networkx's list-of-list adjacency
-representation leads to enormous memory overhead when scaled up to networks
-in the hundreds of thousands of nodes. It is important to have a toolset which
-is efficent and scales well across  multiple cores and memory availability.
-
 The goal of snlpy is to provide the most efficient possible python implementations
 of useful machine learning algorithms on sparse networks. For now, the only
 algorithms provided are some common structural node embedding methods as well
-as an approximate ppr routine. These use the snlpy.CsrGraph format which
-is a useful data structure for working with sparse networks.
+as an approximate ppr routine. 
 
 One major goal of snlpy is easy parallelization. This is achieved via the
 [numba](https://numba.pydata.org/) package.  Wherever possible, algorithms
